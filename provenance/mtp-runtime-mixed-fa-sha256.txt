@@ -1,0 +1,3 @@
+6bef56291b93a8e1cae025796d7a5a2bbe4f4d3de71dd9cd254456a6efd15637  runtime/build-mtp-fa-mixed/bin/llama-server
+9f090c287fc5d544ca8305005c6aa93c8bd9e64d96da2dd4e88e51aca2830233  runtime/build-mtp-fa-mixed/bin/llama-bench
+c07a3c845b3679de5be611a8d27fa290b4983ed5446a706d424df128ffc0f91a  runtime/build-mtp-fa-mixed/bin/libggml-hip.so
