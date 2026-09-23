@@ -1,0 +1,207 @@
+{
+  "project": "Qwen3.8 Flash Next on one R9700",
+  "updated": "2026-09-21",
+  "host": {
+    "cpu": "Intel i9-7960X, 16 physical threads used",
+    "ram_gib": 128,
+    "gpu": "AMD Radeon AI PRO R9700 32 GiB, gfx1201",
+    "pci_gen": 3,
+    "storage": "WD Black SN7100 NVMe on /media/NVME_DATA",
+    "vram_watchdog_limit_mib": 30576,
+    "vram_total_mib_reported": 32624,
+    "vram_committed_idle_mib": 29625,
+    "note_on_limit": "30576 MiB is a guard set in benchmark.py, not a hardware or driver limit"
+  },
+  "service": {
+    "unit": "qwen38-flash-native-mtp.service",
+    "invocation": "750f3fcf53134254b24df29e9eeb94f8",
+    "launcher": "run-q4-native-mtp.sh",
+    "bind": "0.0.0.0:18080",
+    "alias": "qwen3.8-flash-next",
+    "model": "Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64",
+    "ctx_tokens": 262144,
+    "n_cpu_moe": 34,
+    "kv": "q8_0",
+    "threads": 16,
+    "ubatch": 512,
+    "mtp": "depth 1, shared Q8_0 head",
+    "vision": "mmproj-Qwen3.8-Flash-Next-F16.gguf, image_min_tokens 1024",
+    "cache_prompt": true,
+    "cache_ram_mib": 24576,
+    "cpu_affinity": "strict physical CPUs 0-15 for generation and batch",
+    "runtime": "llama.cpp PR #28243 commit 53b1389d0bf98fa367e2a0ce0475008e762ebf28, build 11048, gfx1201",
+    "transient": true
+  },
+  "pi_integration": {
+    "provider": "malos-home",
+    "model_id": "malos/qwen3.8-flash-next",
+    "display": "Malo's Qwen3.8 Flash Next Q4 MTP",
+    "base_url": "http://127.0.0.1:18080/v1",
+    "context_window": 262144,
+    "max_tokens": 65536,
+    "input": [
+      "text",
+      "image"
+    ],
+    "verified": [
+      "text",
+      "image via @image",
+      "multi-turn with prompt cache"
+    ]
+  },
+  "network": {
+    "loopback": "http://127.0.0.1:18080/v1",
+    "tailnet_ipv4": "http://100.104.52.87:18080/v1",
+    "tailnet_magicdns": "http://malos-home.taile1900.ts.net:18080/v1",
+    "lan": [
+      "http://192.168.1.2:18080/v1",
+      "http://192.168.1.157:18080/v1"
+    ],
+    "auth": "none",
+    "cors": "*",
+    "note": "Direct 0.0.0.0 bind was requested and accepted. tailscale serve is disabled on this tailnet; the earlier tailnet-only socat proxy was removed."
+  },
+  "quant_selection": {
+    "selected": "Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64",
+    "selected_size_bytes": 94525394976,
+    "selected_reason": "published KLD 0.0842 and 89.49 percent top-1 agreement with BF16, effectively tied with the 110.5 GB Q5 build while 17.6 GB smaller",
+    "rejected_speed_only": "Qwen3.8-Flash-Next-AD-3.84bpw-IQ4_XS-M64",
+    "rejected_reason": "KLD 0.2277, BF16 top-1 agreement 82.68 percent, perplexity ratio 1.102; 10.54 t/s versus 7.61 t/s on the validated runtime is not worth the quality loss",
+    "rejected_files_removed": true,
+    "freed_bytes": 84930924160,
+    "freed_gib": 79.1,
+    "redownload": "./download-iq4.sh",
+    "iq4_first_shard_sha256": "7286697d1ede4318a5b40b5ef6965c4c93cb3eb8b8d5f5d415f0dd500b4677db"
+  },
+  "results": {
+    "installed_runtime_q4_native_262k": 7.61,
+    "installed_runtime_q4_yarn_1m": 5.27,
+    "installed_runtime_iq4_peak": 10.5445,
+    "pr_runtime_no_mtp_median": 15.47,
+    "pr_runtime_mtp_prose": "17-19 t/s",
+    "pr_runtime_mtp_forced512": 20.64,
+    "production_vision_mtp": 19.03,
+    "vision_vram_peak_mib": 29447,
+    "mtp_acceptance_forced512": "253/257",
+    "prefill_tokens_per_second": 95.727,
+    "real_100k_previous_prefill_tps": 80.15,
+    "real_100k_previous_decode_tps": 16.099,
+    "real_100k_deployed_prefill_tps": 95.727,
+    "real_100k_deployed_decode_tps": 18.335,
+    "real_100k_peak_vram_mib": 30833,
+    "real_100k_exact_recall": true,
+    "cache_100k_restore_seconds": 1.197,
+    "cache_100k_restored_tokens": 100000,
+    "repeat_prefix_prefill_seconds": 0.19,
+    "repeat_prefix_speedup": "266x with 5477 cached tokens"
+  },
+  "accepted": {
+    "lazy_mmap": "on, keeps the 38.4 GB n-gram shard pageable and cut RSS by 36.5 GiB at 33 percent better median",
+    "physical_threads_only": "16 threads; 32 logical threads collapsed to 1.99 t/s",
+    "cache_prompt": "required for agent use, --no-cache-prompt made every turn re-prefill and looked like a hang",
+    "vision": "exact transcription at 1024 image-token minimum with MTP enabled",
+    "mtp_depth_1": "29 to 31 percent faster on a predictable sequence, quality treated as comparable because drafts verify against the same target model",
+    "ubatch_512": "real warmed 100K prefill improved from 80.15 to 95.73 t/s with 1791 MiB worst measured free",
+    "prompt_cache_24g": "100000-token q8 state restored in 1.20 seconds after divergence"
+  },
+  "rejected": {
+    "installed_runtime_mtp": "GGML_ASSERT ggml_can_repeat in llama_model_qwen4exp::graph::build_hc_mix",
+    "mtp_depth_2": "slower on this CPU/GPU split",
+    "hyperthreading": "1.99 t/s",
+    "ubatch_above_512_at_262k": "1024 exceeds available VRAM",
+    "compressed_target_kv": "q5/q5 KLD 0.04087 and 94.43 percent top-1; q4/q4 KLD 0.06795 and 91.31 percent top-1",
+    "iq4_quant": "quality regression for a speed win that MTP provides on Q4 instead",
+    "33_cpu_moe_with_vision": "real 100K peak 31798 MiB leaves 826 MiB, below the 1 GiB deployment margin"
+  },
+  "cleanup": {
+    "deleted": [
+      "models/Qwen3.8-Flash-Next-AD-3.84bpw-IQ4_XS-M64/ (28 shards, 79.10 GiB, rejected quant)",
+      "download.log, download-iq4.log, build-mtp-runtime.log (transient transcripts, facts preserved in provenance/)",
+      "__pycache__/ (generated)",
+      "/tmp/prefill_probe.py (scratch probe, findings recorded in results/prefill-ubatch-v1/)"
+    ],
+    "moved": {
+      "provenance/": "model, MTP, projector, runtime and IQ4 manifests out of the project root",
+      "results/prefill-ubatch-v1/": "6 loose ubatch probe logs plus a results.json"
+    },
+    "kept_because_mapped_or_used": [
+      "models/Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64/ (33 shards, 88.03 GiB)",
+      "models/unsloth-Qwen3.8-Flash-Next-GGUF/MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf (2.6 GiB)",
+      "models/mmproj-Qwen3.8-Flash-Next-F16.gguf (863 MiB)",
+      "runtime/build-mtp/ (262 MiB, running server binary)",
+      "runtime/llama.cpp-mtp/ (234 MiB, pinned PR source for rebuild and hash verification)"
+    ],
+    "documentation": [
+      "README.md",
+      "RESULTS.md",
+      "EVIDENCE.md",
+      "PROVENANCE.md",
+      "DEPLOYMENT.md",
+      "summary.json"
+    ]
+  },
+  "remote_compaction": {
+    "path": "pi-extensions/remote-compaction.ts",
+    "status": "documented option; not installed and not tested",
+    "providers": ["github-copilot/gemini-3.6-flash", "opencode-go/qwen3.8-flash"],
+    "max_output_tokens": 4096,
+    "reasoning": "off",
+    "static_checks_only": "bun build compiles; pi --extension loads during --list-models",
+    "conversation_data_sent_remote": false,
+    "compaction_path_in_use": "Pi default compaction on the local model",
+    "measured_compaction_cost_minutes_unchanged": 39.4
+  },
+  "not_claimed": {
+    "video_rate_reproduced": false,
+    "genuinely_occupied_262k": false,
+    "genuinely_occupied_1m": false,
+    "pr_runtime_quality_evaluated": false,
+    "mtp_output_byte_identical": false,
+    "pr_28243_merged": false,
+    "upstream_rocr_fix_confirmed": false,
+    "service_survives_reboot": false
+  },
+  "evidence": {
+    "index": "EVIDENCE.md",
+    "directories": [
+      "smoke32-lazy-on",
+      "residency-sweep-v1",
+      "residency-26-v1",
+      "residency-boundary-repeat-v1",
+      "threads32-ncmoe26-v1",
+      "lazy-off-ncmoe26-v1",
+      "lazy-off-ncmoe26-v2",
+      "q4-native-262k-allocation-v1",
+      "q4-yarn-1m-allocation-v1",
+      "iq4-residency-sweep-v1",
+      "iq4-residency-boundary-v1",
+      "iq4-ncmoe20-512-v1",
+      "iq4-ncmoe20-repeat-v1",
+      "iq4-ncmoe20-ctx76k-v1",
+      "mtp-ncmoe28-v1",
+      "mtp-pr-head-32k-v1",
+      "mtp-pr-head-262k-placement-v1",
+      "vision-mtp-262k-v1",
+      "prefill-ubatch-v1",
+      "native-service-smoke",
+      "native-mtp-service",
+      "vram-probe-20260921-1651",
+      "vram-probe-20260921-1703",
+      "vram-probe-20260921-1711",
+      "screen32k-20260921-1718",
+      "screen100k-20260921-1800",
+      "quality-kv-gate",
+      "real100k-v1",
+      "cache100k-v1",
+      "deploy-20260921-232158"
+    ]
+  },
+  "source_links": {
+    "model": "https://huggingface.co/AtomicChat/Qwen3.8-Flash-Next-GGUF",
+    "atomic_guide": "https://atomic.chat/blog/guides/how-to-run-qwen-3-8-flash-next-locally",
+    "lazy_loader": "https://github.com/ggml-org/llama.cpp/pull/27794",
+    "ple_ssd_discussion": "https://github.com/ggml-org/llama.cpp/discussions/27864",
+    "mtp_pr": "https://github.com/ggml-org/llama.cpp/pull/28243",
+    "unsloth_mtp_guidance": "https://huggingface.co/unsloth/Qwen3.8-Flash-Next-GGUF/blob/main/MTP/README.md"
+  }
+}
