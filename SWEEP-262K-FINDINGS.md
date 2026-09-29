@@ -11,8 +11,10 @@
 - host prompt cache 24,576 MiB
 - known-good pinned runtime `53b1389d0`
 
-Active unit: `qwen38-flash-native-mtp.service`, invocation
-`750f3fcf53134254b24df29e9eeb94f8`.
+Active unit at the time: `qwen38-flash-native-mtp.service`, invocation
+`750f3fcf53134254b24df29e9eeb94f8`. That transient unit was replaced on 2026-09-23 by the linked
+`qwen-flash.service` (invocation `8613f853f7ad47efbd9762c01fbf9913`); `DEPLOYMENT.md` is the
+current record of the service.
 
 ## Real 100K A/B
 

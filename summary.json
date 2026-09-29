@@ -1,6 +1,6 @@
 {
   "project": "Qwen3.8 Flash Next on one R9700",
-  "updated": "2026-09-21",
+  "updated": "2026-09-29",
   "host": {
     "cpu": "Intel i9-7960X, 16 physical threads used",
     "ram_gib": 128,
@@ -13,8 +13,10 @@
     "note_on_limit": "30576 MiB is a guard set in benchmark.py, not a hardware or driver limit"
   },
   "service": {
-    "unit": "qwen38-flash-native-mtp.service",
-    "invocation": "750f3fcf53134254b24df29e9eeb94f8",
+    "unit": "qwen-flash.service",
+    "unit_file": "systemd/qwen-flash.service",
+    "invocation": "8613f853f7ad47efbd9762c01fbf9913",
+    "handoff_report": "results/latest-handoff-window",
     "launcher": "run-q4-native-mtp.sh",
     "bind": "0.0.0.0:18080",
     "alias": "qwen3.8-flash-next",
@@ -30,10 +32,30 @@
     "cache_ram_mib": 24576,
     "cpu_affinity": "strict physical CPUs 0-15 for generation and batch",
     "runtime": "llama.cpp PR #28243 commit 53b1389d0bf98fa367e2a0ce0475008e762ebf28, build 11048, gfx1201",
-    "transient": true
+    "transient": false,
+    "enabled": false,
+    "manager_mode": "qwen-flash, since 2026-09-23: pi-inference qwen-flash starts this unit and pi-inference stop stops it; a transition away refuses while a request is in flight and a transition in refuses while another owner holds the card",
+    "note_on_enabled": "not enabled on purpose: auto-start on login would compete with the manager for the one card",
+    "auto_compaction_trigger_tokens": 245760,
+    "auto_compaction_trigger_note": "contextWindow 262144 minus Pi's 16384 reserveTokens default; one compaction on this profile measured 39.4 minutes, mostly re-prefill",
+    "checkpoint_flags": "--ctx-checkpoints 32 --checkpoint-min-step 8192, in the running process and covered by no measurement under results/",
+    "single_slot": "--parallel 1: a second client evicts the resident slot state instead of queueing, which is a full re-prefill for whoever was there"
+  },
+  "dependencies": {
+    "rocr": {
+      "prefix": "../ds4/misc/rocm-local-runtime-fixed-prefix/lib",
+      "libhsa_runtime64_sha256": "1009e6f51ba351bf632867effc63bb0a30de2b17539b46a6150de781d0c3ec9f",
+      "patch": "../ds4/rocm/patches/0001-rocr-wrap-final-sdma-tracker-half-word.patch (ROCm/rocm-systems, commit 1a2897e7ad, on no remote branch)",
+      "stable_copy": "~/.local/opt/rocr-r9700/lib",
+      "consequence": "ds4's prefix is gitignored and is the only built copy of the patch; without it pi-inference qwen-flash cannot start, and sweep-longcontext.sh would silently measure the system ROCr instead",
+      "reference": "UPSTREAM.md section: The ROCr prefix is a single point of failure"
+    },
+    "control_plane": "~/Develop/MACHINE_LEARNING/local-models/QWEN_FLASH_CONTROL_PLANE.md and QWEN_FLASH_HANDOFF.md: mode vocabulary, lease and occupancy rules, phases"
   },
   "pi_integration": {
     "provider": "malos-home",
+    "provider_added_alongside": "qwen-flash",
+    "provider_rename_status": "qwen-flash added 2026-09-23 as a copy so no running session was orphaned, because Pi resolves a provider per request; malos-home is kept for the same reason. Both point at this endpoint.",
     "model_id": "malos/qwen3.8-flash-next",
     "display": "Malo's Qwen3.8 Flash Next Q4 MTP",
     "base_url": "http://127.0.0.1:18080/v1",
@@ -137,6 +159,9 @@
       "EVIDENCE.md",
       "PROVENANCE.md",
       "DEPLOYMENT.md",
+      "UPSTREAM.md",
+      "PLAN-262K-SWEEP.md",
+      "SWEEP-262K-FINDINGS.md",
       "summary.json"
     ]
   },
@@ -159,7 +184,9 @@
     "mtp_output_byte_identical": false,
     "pr_28243_merged": false,
     "upstream_rocr_fix_confirmed": false,
-    "service_survives_reboot": false
+    "service_autostarts_on_login": false,
+    "installed_runtime_mtp_fixed_upstream_verified_locally": false,
+    "checkpoint_flags_measured": false
   },
   "evidence": {
     "index": "EVIDENCE.md",
@@ -193,7 +220,9 @@
       "quality-kv-gate",
       "real100k-v1",
       "cache100k-v1",
-      "deploy-20260921-232158"
+      "deploy-20260921-232158",
+      "handoff-window-20260923-094411",
+      "compaction-monitor-20260922"
     ]
   },
   "source_links": {
@@ -202,6 +231,7 @@
     "lazy_loader": "https://github.com/ggml-org/llama.cpp/pull/27794",
     "ple_ssd_discussion": "https://github.com/ggml-org/llama.cpp/discussions/27864",
     "mtp_pr": "https://github.com/ggml-org/llama.cpp/pull/28243",
+    "unsloth_mtp_graph_assertion_issue": "https://github.com/unslothai/unsloth/issues/11219 (closed 2026-09-21 as fixed; same assertion as #11143; interim pin UNSLOTH_LLAMA_RELEASE_TAG=b10909-mix-bea84f7)",
     "unsloth_mtp_guidance": "https://huggingface.co/unsloth/Qwen3.8-Flash-Next-GGUF/blob/main/MTP/README.md"
   }
 }

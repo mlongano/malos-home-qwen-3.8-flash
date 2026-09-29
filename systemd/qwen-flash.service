@@ -1,24 +1,27 @@
-# Staged, NOT installed, NOT enabled. See local-models/QWEN_FLASH_CONTROL_PLANE.md.
+# Installed (Phase 0, 2026-09-23): linked into ~/.config/systemd/user/ and owned by the manager
+# since Phase 1 the same day — `pi-inference qwen-flash` starts it, `pi-inference stop` stops it.
+# Design: local-models/QWEN_FLASH_CONTROL_PLANE.md. Current state: DEPLOYMENT.md.
 #
-# Install (Phase 0, must happen when no session depends on this server):
-#   systemctl --user stop qwen38-flash-native-mtp.service
+# Reinstall, when no session depends on this server:
+#   systemctl --user stop qwen-flash.service
 #   ln -sfn $PWD/systemd/qwen-flash.service ~/.config/systemd/user/qwen-flash.service
 #   systemctl --user daemon-reload
 #   systemctl --user start qwen-flash.service
 #
-# Intentionally NOT enabled with `enable`: until the manager knows the `qwen-flash` mode exists,
-# auto-start on login competes with `pi-inference team|studio|ds4` for the one card. Ownership is
-# the manager's job (Phase 1), not the unit file's.
+# Still NOT enabled with `enable`: auto-start on login would compete with the manager for the one
+# card. Transitions are the manager's job, not the unit file's.
 #
 # Intentionally NO Conflicts=pi-llama-router.service. Conflicts makes systemd stop this server
 # when another owner starts — so `pi-inference team` would silently kill a live 262K agent session
 # and then report a successful transition, because the manager does not look at this unit. A
 # silent session kill is worse than the current OOM-window failure, which at least fails loudly.
-# Phase 1 replaces both failure modes with an owned transition that refuses up front.
+# Phase 1 (landed 2026-09-23) replaced both failure modes with an owned transition that refuses up
+# front.
 
 [Unit]
 Description=Qwen3.8 Flash Next (qwen-flash): Q4 native 262K, MTP + vision
 Documentation=file:/media/NVME_DATA/MOUNTS/Models/qwen-3.8-flash/DEPLOYMENT.md
+Documentation=file:/media/NVME_DATA/MOUNTS/Models/qwen-3.8-flash/UPSTREAM.md
 Documentation=file:%h/Develop/MACHINE_LEARNING/local-models/QWEN_FLASH_CONTROL_PLANE.md
 After=network-online.target
 Wants=network-online.target
