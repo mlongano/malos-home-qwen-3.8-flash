@@ -7,9 +7,34 @@ SERVER="$BIN/llama-server"
 BASE="$ROOT/models/Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64/Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64-00001-of-00033.gguf"
 DRAFT="$ROOT/models/unsloth-Qwen3.8-Flash-Next-GGUF/MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf"
 MMPROJ="$ROOT/models/mmproj-Qwen3.8-Flash-Next-F16.gguf"
-FIXED_ROCR="$ROOT/../ds4/misc/rocm-local-runtime-fixed-prefix/lib"
 
-for file in "$SERVER" "$BASE" "$DRAFT" "$FIXED_ROCR/libhsa-runtime64.so.1"; do
+# The patched ROCr this runtime loads exists in two places and in neither repository's history: the
+# ds4 build prefix, which that project gitignores, and a copy under ~/.local/opt. Losing both stops
+# this service from starting at all -- UPSTREAM.md, "The ROCr prefix is a single point of failure".
+DS4_ROCR="$ROOT/../ds4/misc/rocm-local-runtime-fixed-prefix/lib"
+OPT_ROCR="$HOME/.local/opt/rocr-r9700/lib"
+FIXED_ROCR="${FIXED_ROCR:-}"
+if [[ -z "$FIXED_ROCR" || ! -r "$FIXED_ROCR/libhsa-runtime64.so.1" ]]; then
+    FIXED_ROCR=""
+    for candidate in "$DS4_ROCR" "$OPT_ROCR"; do
+        if [[ -r "$candidate/libhsa-runtime64.so.1" ]]; then
+            FIXED_ROCR="$candidate"
+            break
+        fi
+    done
+fi
+if [[ -z "$FIXED_ROCR" ]]; then
+    echo "run-mtp-pr-test: the patched ROCr runtime is missing" >&2
+    echo "  looked in: $DS4_ROCR $OPT_ROCR" >&2
+    echo "  built from ds4/rocm/patches/0001-rocr-wrap-final-sdma-tracker-half-word.patch" >&2
+    echo "  see UPSTREAM.md, section: The ROCr prefix is a single point of failure" >&2
+    exit 1
+fi
+if [[ "$FIXED_ROCR" != "$DS4_ROCR" ]]; then
+    echo "run-mtp-pr-test: using ROCr from $FIXED_ROCR, not the ds4 build prefix" >&2
+fi
+
+for file in "$SERVER" "$BASE" "$DRAFT"; do
     if [[ ! -r "$file" ]]; then
         echo "run-mtp-pr-test: required file is missing: $file" >&2
         exit 1

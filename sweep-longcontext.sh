@@ -6,7 +6,29 @@ set -uo pipefail
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 BIN="${BIN_DIR:-$ROOT/runtime/build-mtp/bin}"
 BASE="$ROOT/models/Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64/Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64-00001-of-00033.gguf"
-export LD_LIBRARY_PATH="$BIN:$ROOT/../ds4/misc/rocm-local-runtime-fixed-prefix/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+# Same patched ROCr as the production launcher, resolved the same way: an unreadable ds4 prefix must
+# not silently turn a sweep into a measurement of the system ROCr. UPSTREAM.md, "The ROCr prefix is
+# a single point of failure".
+DS4_ROCR="$ROOT/../ds4/misc/rocm-local-runtime-fixed-prefix/lib"
+OPT_ROCR="$HOME/.local/opt/rocr-r9700/lib"
+FIXED_ROCR="${FIXED_ROCR:-}"
+if [[ -z "$FIXED_ROCR" || ! -r "$FIXED_ROCR/libhsa-runtime64.so.1" ]]; then
+    FIXED_ROCR=""
+    for candidate in "$DS4_ROCR" "$OPT_ROCR"; do
+        if [[ -r "$candidate/libhsa-runtime64.so.1" ]]; then
+            FIXED_ROCR="$candidate"
+            break
+        fi
+    done
+fi
+if [[ -z "$FIXED_ROCR" ]]; then
+    echo "sweep-longcontext: the patched ROCr runtime is missing" >&2
+    echo "  looked in: $DS4_ROCR $OPT_ROCR" >&2
+    echo "  a sweep against the system ROCr would not describe production" >&2
+    exit 1
+fi
+export LD_LIBRARY_PATH="$BIN:$FIXED_ROCR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export HSA_ENABLE_SDMA=1
 
 PP="${PP_TOKENS:-100000}"
