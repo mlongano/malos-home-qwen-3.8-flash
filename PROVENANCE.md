@@ -30,6 +30,18 @@ same commit with q8/q4, q5/q5 and q5/q4 FlashAttention kernels. Its hashes and v
 It exists only to evaluate compressed KV; production remains on `runtime/build-mtp/` because all
 compressed target-KV candidates failed the quality gate.
 
+## ROCr runtime
+
+This runtime resolves `libhsa-runtime64.so.1` from a project-local prefix rather than from system
+ROCm: `../ds4/misc/rocm-local-runtime-fixed-prefix/lib`, SHA-256
+`1009e6f51ba351bf632867effc63bb0a30de2b17539b46a6150de781d0c3ec9f`. It is built from a
+one-commit patch to `ROCm/rocm-systems` that exists only in that project:
+`ds4/rocm/patches/0001-rocr-wrap-final-sdma-tracker-half-word.patch`, commit `1a2897e7ad`, on no
+remote branch and not an ancestor of `rocm-7.2.4`. That prefix sits under `misc/`, which `ds4`
+gitignores, so it has no history of its own. `UPSTREAM.md` §"The ROCr prefix is a single point of
+failure" lists the paths, the stable copy at `~/.local/opt/rocr-r9700/` and what this service does
+without it.
+
 ## Vision projector
 
 - Repository: `AtomicChat/Qwen3.8-Flash-Next-GGUF`

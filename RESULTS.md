@@ -130,6 +130,10 @@ The forced-512 comparison gives a 29–31% MTP gain over the same PR runtime's o
 
 MTP repeated deterministically within each configuration, but its greedy output was not byte-identical to no-MTP output. Draft depth 1 and disabling backend draft sampling did not restore parity. The no-MTP PR runtime also differs from build 11007, so the runtime itself requires separate quality acceptance. Upstream PR #28243 remains open; its ROCm CI passes, but token-by-token losslessness has not been established here.
 
+The assertion that blocked the installed runtime is reported upstream as `unslothai/unsloth#11219`
+(the same one as `#11143`) and was closed as fixed on 2026-09-21. `UPSTREAM.md` keeps the lead and
+the interim `b10909-mix` pin, because a newer Studio build may now serve this head without the PR.
+
 Evidence:
 
 - `results/mtp-pr-head-32k-v1/`
@@ -138,6 +142,11 @@ Evidence:
 ## Vision
 
 The exact AtomicChat F16 projector, SHA-256 `0e61454a76dd154a10aaa8fb1ada32615f55a13e4171014dacd06913e4aa6889`, loads successfully alongside the Q4 base and shared Q8 MTP head. A synthetic image containing `VISION 731` and `YELLOW CARD` was transcribed exactly.
+
+The 1,024-token image minimum is not a preference. llama.cpp warns at load that "Qwen-VL models
+require at minimum 1024 image tokens to function correctly on grounding tasks", which is why the
+launcher passes `--image-min-tokens 1024`; the same number sets the floor on what one image costs in
+prefill.
 
 The original 33-layer placement peaked at 30,362 MiB VRAM and was rejected for narrow margin. Moving one more MoE layer to CPU produced the selected profile:
 
@@ -202,6 +211,14 @@ The running service logs every request. Across 74 logged turns:
   118.8 of those minutes, 80% of all wall time.
 - Rule of thumb on this host: **about 13 seconds per 1,000 prompt tokens**, roughly 4,700 tokens
   per minute of ingestion.
+
+Pi compacts at `contextWindow − reserveTokens`, so this model auto-compacts at 262,144 − 16,384 =
+**245,760 tokens** unless the 16,384 default is changed in `~/.pi/agent/settings.json`. One
+compaction from the log cost 39.4 minutes (`EVIDENCE.md`), and nothing about it can be cached:
+Pi gives compaction a fresh routing session, and llama.cpp disables `--cache-reuse` while a
+multimodal projector is loaded (`PLAN-262K-SWEEP.md`). `results/compaction-monitor-20260922/`
+sampled the slot every 10 seconds around this: decode 13.3-13.7 t/s at ~98K context, 11.9 t/s at
+116K, 10.7 t/s at 156K.
 
 ### Why prefix caching silently stops working
 
@@ -273,7 +290,10 @@ proxy was tried first, then removed once direct binding was chosen.
 Pi registers the endpoint as provider `malos-home`, model id `malos/qwen3.8-flash-next`, display
 name "Malo's Qwen3.8 Flash Next Q4 MTP", with text and image input, 262,144 context and 65,536
 maximum output tokens. llama.cpp accepts the `malos/` prefixed model id even though it reports
-its own alias in responses, so no server-side rename was required.
+its own alias in responses, so no server-side rename was required. A second provider id,
+`qwen-flash`, is a copy of that entry added on 2026-09-23: Pi resolves a provider per request, so
+renaming the id under a running session would have broken its next turn. Both point at this
+endpoint (`summary.json`).
 
 ## Why the video number differs
 

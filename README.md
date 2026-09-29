@@ -14,7 +14,9 @@ project. Models, results, the runtime build tree and logs are ignored by Git.
 ## Running now
 
 ```
-unit      qwen38-flash-native-mtp.service   (transient, no autostart)
+unit      qwen-flash.service                (linked unit file, no autostart)
+manager   pi-inference qwen-flash           (mode since 2026-09-23; the manager owns the switch)
+systemd   systemd/qwen-flash.service        (Restart=on-failure, hardened)
 endpoint  http://127.0.0.1:18080/v1         also 0.0.0.0, tailnet and LAN
 alias     qwen3.8-flash-next
 launcher  ./run-q4-native-mtp.sh
@@ -25,7 +27,9 @@ n-gram mmap, MTP draft depth 1, vision projector with a 1,024-token image minimu
 host prompt cache. A real 100K request reached 95.73 t/s prefill and 18.33 t/s decode with exact
 key recall; vision transcription remains exact. See [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
-Pi uses this endpoint as provider `malos-home`, model `malos/qwen3.8-flash-next`.
+Pi uses this endpoint under two provider ids, `malos-home` and `qwen-flash`, both pointing at
+`malos/qwen3.8-flash-next`. Pi resolves a provider per request, so renaming or removing one while a
+session is using it breaks that turn; the second id exists for that reason.
 
 ## Results in one table
 
@@ -62,9 +66,18 @@ expert placement decides both speed and VRAM.
 | `build-mtp-runtime.sh` | build the pinned PR runtime for `gfx1201` |
 | `run-q4-native-mtp.sh` | production launcher (MTP + vision) |
 | `run-q4-native-max.sh`, `run-q4-extended-max.sh` | installed-runtime fallbacks, 262K and 1M |
-| `run-server.sh`, `run-mtp-pr-test.sh`, `benchmark.py` | bounded test launchers and sweeps |
+| `run-server.sh`, `benchmark.py` | bounded test launchers and sweeps |
 | `provenance/` | manifests written by the scripts |
 | `pi-extensions/` | remote compaction extension: documented option, intentionally not installed or tested |
+| `UPSTREAM.md` | upstream intake: when to move the llama.cpp pin, and the ROCr dependency on `ds4` |
+| `run-handoff-window.sh` | the 2026-09-23 transient-to-installed unit swap, verified and with rollback |
+| `run-mtp-pr-test.sh` | what the launcher executes: every flag, the ROCr path, the guard rails |
+| `sweep-longcontext.sh` | long-context relative speed sweep with the pinned `llama-bench` |
+| `probe-vram.sh`, `probe-workload.py` | production-shape VRAM probe and the text/vision workload it samples |
+| `quality-kv-gate.py` | teacher-forcing KLD and top-1 gate for a candidate KV cache |
+| `real-longcontext-test.py`, `run-real100k.sh` | real 100K agent-shaped request harness, on its own server on port 18099 |
+| `make-agent-prompt.py` | builds that harness's agent-shaped corpus from a Pi session JSONL |
+| `test-prompt-cache.py` | prompt-cache save/restore check behind `results/cache100k-v1/` |
 | `models/` | Q4, MTP head, projector (88 GB, ignored) |
 | `runtime/` | pinned PR source clone and build tree (496 MB, ignored) |
 | `results/` | raw logs and JSON evidence (ignored) |
@@ -87,6 +100,10 @@ expert placement decides both speed and VRAM.
 - `--n-cpu-moe` decides the split; it dominates decode cost on this host.
 - `--cache-prompt` is required for agent use. With `--no-cache-prompt` every turn re-prefills the
   whole conversation, which looked exactly like a hang.
+- `--ctx-checkpoints 32 --checkpoint-min-step 8192` are in the running process and in no measurement
+  under `results/`: they are the current defaults, not a conclusion. Checkpoints hold KV state of
+  their own, so anyone changing them should measure. `run-server.sh` disables them
+  (`--ctx-checkpoints 0`) for the YaRN profiles.
 - 16 physical threads; 32 logical threads collapsed throughput to 1.99 t/s.
 - `HSA_ENABLE_SDMA=1` stays enabled.
 
@@ -111,6 +128,18 @@ projector, and the pinned PR runtime.
   against 2 tokens with `chat_template_kwargs: {"enable_thinking": false}`. If replies feel
   verbose, the knobs are thinking on/off and output budget. Too small a budget returns empty
   `content` with `finish_reason: length`.
+
+## Related projects
+
+The manager, the panel and the design record live in
+`~/Develop/MACHINE_LEARNING/local-models`: `QWEN_FLASH_CONTROL_PLANE.md` (why this is a mode rather
+than a `pi-llama` router model, the lease and occupancy rules, the phases still open) and
+`QWEN_FLASH_HANDOFF.md` (the executed handoff window). This repo depends on the `ds4` project for
+one thing it cannot regenerate locally, the patched ROCr prefix; `UPSTREAM.md` documents it, and
+`DEPLOYMENT.md` §"Coexistence" records what that means in practice. The `ds4` engine is not an
+alternative for this model on this host either: as of 2026-09-16 its upstream carries Qwen3.8 Flash
+Next for Metal and CUDA but not for ROCm (`ds4/docs/SESSION_SUMMARY_2026-09-04_2026-09-17.md`),
+which is part of why this runs on a pinned llama.cpp PR.
 
 ## Sources
 

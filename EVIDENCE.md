@@ -82,6 +82,13 @@ The prefill was a full re-prefill: the conversation already occupied 246,304 tok
 but the compaction prompt did not share that prefix, so none of it was reused. Roughly three
 quarters of a compaction is spent re-reading the conversation.
 
+## Unit swap and the compaction watcher
+
+| Artifact | Proves |
+|---|---|
+| `handoff-window-20260923-094411/` | The transient-unit-to-linked-unit swap: the report, the service state and the workload that verified it. `DEPLOYMENT.md` §"Post-swap verification" carries the result table and the two verification bugs the script had |
+| `compaction-monitor-20260922/` | 10-second samples of the slot, the unit's journal and Pi's compaction entries. Its `README.md` shows the 17-minute prefill that looked like a compaction was a full-context *turn*; `compactions.md` records the compaction it later caught (`tokensBefore` 255,651); `monitor.log` holds the decode fall-off with context (13.3-13.7 t/s at ~98K, 11.9 t/s at 116K, 10.7 t/s at 156K) |
+
 ## Note on the VRAM limit used in earlier rejections
 
 `benchmark.py` sets `VRAM_LIMIT_MIB = 30576`. That is a project guard, not the card: the driver
